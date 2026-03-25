@@ -1,5 +1,17 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+Crie um arquivo `.env.local` na raiz de `chazz-web` (você pode copiar de `.env.local.example`) com:
+
+```bash
+NEXT_PUBLIC_CHAZZ_API_URL=http://localhost:3000
+NEXT_PUBLIC_CHAZZ_WS_URL=ws://localhost:3000/ws
+```
+
+- `NEXT_PUBLIC_CHAZZ_API_URL`: base da API usada pelo `GET /devices`.
+- `NEXT_PUBLIC_CHAZZ_WS_URL`: endpoint WebSocket para atualizacoes em tempo real dos devices.
+
 ## Getting Started
 
 First, run the development server:
