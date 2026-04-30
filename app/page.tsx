@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   type Device,
   formatDuration,
@@ -25,11 +26,38 @@ function deriveWsUrl(apiBaseUrl: string): string {
   }
 }
 
+type OverallStatus = "ok" | "degraded" | "loading";
+
+function useSystemStatus() {
+  const [status, setStatus] = useState<OverallStatus>("loading");
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    fetch(`${API_BASE_URL}/status`, { signal: abortController.signal })
+      .then((res) => res.json())
+      .then((data: Record<string, { status: string }>) => {
+        const services = [data.backend, data.database, data.tuya, data.websocket, data.woovi];
+        const allOk = services.every((s) => s?.status === "ok");
+        setStatus(allOk ? "ok" : "degraded");
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setStatus("degraded");
+      });
+
+    return () => abortController.abort();
+  }, []);
+
+  return status;
+}
+
 export default function Home() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const systemStatus = useSystemStatus();
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -109,9 +137,31 @@ export default function Home() {
     <div className="min-h-screen bg-zinc-50 px-4 py-6 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-2xl">
         <header className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Painel de Máquinas</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Painel de Máquinas - Chazz</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{devicesCountLabel}</p>
         </header>
+
+        <Link
+          href="/status"
+          className={`inline-flex items-center justify-center gap-2 self-start rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+            systemStatus === "loading"
+              ? "border-zinc-200 bg-white text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+              : systemStatus === "ok"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-900/50"
+                : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/60"
+          }`}
+        >
+          <span
+            className={`h-2 w-2 shrink-0 rounded-full ${
+              systemStatus === "loading"
+                ? "animate-pulse bg-zinc-400"
+                : systemStatus === "ok"
+                  ? "bg-emerald-500"
+                  : "bg-red-500"
+            }`}
+          />
+          {systemStatus === "loading" ? "Verificando..." : systemStatus === "ok" ? "Status ok" : "Com falhas"}
+        </Link>
 
         {loading ? (
           <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
