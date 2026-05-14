@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Check, CheckCircle2, Copy, Plus, Trash2 } from "lucide-react";
 import { api, getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type { Company, Coupon, Device } from "@/lib/types";
@@ -26,7 +26,8 @@ import { formatDateTime, formatSecondsHuman } from "@/lib/format";
 type DialogState =
   | { kind: "closed" }
   | { kind: "create" }
-  | { kind: "delete"; coupon: Coupon };
+  | { kind: "delete"; coupon: Coupon }
+  | { kind: "success"; coupon: Coupon };
 
 export default function AdminCouponsPage() {
   const { user, isSuperadmin } = useAuth();
@@ -72,13 +73,14 @@ export default function AdminCouponsPage() {
     company_id: number;
     valid_until: string;
     release_seconds: number;
-  }) {
+  }): Promise<Coupon | null> {
     try {
       const res = await api.post<Coupon>("/coupons", payload);
       setCoupons((current) => [res.data, ...current]);
-      toast.success(`Cupom criado: ${res.data.code}`);
+      return res.data;
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Falha ao criar cupom"));
+      return null;
     }
   }
 
@@ -206,9 +208,17 @@ export default function AdminCouponsPage() {
           defaultCompanyId={user?.company_id ?? null}
           onClose={closeDialog}
           onSave={async (payload) => {
-            await handleCreate(payload);
-            closeDialog();
+            const created = await handleCreate(payload);
+            setDialog(created ? { kind: "success", coupon: created } : { kind: "closed" });
           }}
+        />
+      ) : null}
+
+      {dialog.kind === "success" ? (
+        <CouponCreatedDialog
+          coupon={dialog.coupon}
+          device={deviceById.get(dialog.coupon.device_id)}
+          onClose={closeDialog}
         />
       ) : null}
 
@@ -364,6 +374,87 @@ function CouponFormDialog({
           >
             {submitting ? "Gerando..." : "Gerar cupom"}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CouponCreatedDialog({
+  coupon,
+  device,
+  onClose,
+}: {
+  coupon: Coupon;
+  device: Device | undefined;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(coupon.code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Não foi possível copiar o código");
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-emerald-500" />
+            <DialogTitle>Cupom gerado</DialogTitle>
+          </div>
+          <DialogDescription>
+            Copie o código abaixo e envie ao cliente para liberar a máquina.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between gap-3 rounded-lg border bg-[var(--secondary)] p-4">
+          <span className="select-all font-mono text-2xl font-bold tracking-wider">
+            {coupon.code}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            className="gap-2"
+            aria-label="Copiar código do cupom"
+          >
+            {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            {copied ? "Copiado" : "Copiar"}
+          </Button>
+        </div>
+
+        <div className="space-y-1 text-sm text-[var(--muted-foreground)]">
+          {device ? (
+            <p>
+              Máquina:{" "}
+              <span className="text-[var(--foreground)]">
+                {device.name ?? `Máquina ${device.id}`}
+              </span>
+            </p>
+          ) : null}
+          <p>
+            Duração:{" "}
+            <span className="text-[var(--foreground)]">
+              {formatSecondsHuman(coupon.release_seconds)}
+            </span>
+          </p>
+          <p>
+            Válido até:{" "}
+            <span className="text-[var(--foreground)]">
+              {formatDateTime(coupon.valid_until)}
+            </span>
+          </p>
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose}>Concluído</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

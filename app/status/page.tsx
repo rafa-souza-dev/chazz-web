@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_CHAZZ_API_URL ?? "http://localhost:3000";
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -22,7 +24,7 @@ interface StatusResponse {
 function StatusIndicator({ status }: { status: "ok" | "error" | "loading" }) {
   if (status === "loading") {
     return (
-      <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-zinc-400 dark:bg-zinc-500" />
+      <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-[var(--muted-foreground)]" />
     );
   }
   return (
@@ -39,7 +41,7 @@ function StatusIndicator({ status }: { status: "ok" | "error" | "loading" }) {
 function StatusBadge({ status }: { status: "ok" | "error" | "loading" }) {
   if (status === "loading") {
     return (
-      <span className="rounded-full bg-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+      <span className="rounded-full bg-[var(--muted)] px-2.5 py-1 text-xs font-medium text-[var(--muted-foreground)]">
         Verificando...
       </span>
     );
@@ -69,13 +71,13 @@ function ServiceCard({ title, description, serviceStatus, loading, extra }: Serv
   const status = loading ? "loading" : serviceStatus?.status ?? "error";
 
   return (
-    <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <Card className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <StatusIndicator status={status} />
           <div>
             <h2 className="text-base font-semibold leading-tight">{title}</h2>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{description}</p>
+            <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{description}</p>
           </div>
         </div>
         <StatusBadge status={status} />
@@ -88,7 +90,7 @@ function ServiceCard({ title, description, serviceStatus, loading, extra }: Serv
       ) : null}
 
       {!loading && extra ? <div className="mt-3">{extra}</div> : null}
-    </section>
+    </Card>
   );
 }
 
@@ -140,20 +142,21 @@ export default function StatusPage() {
     statusData && statusData.cached_at !== statusData.timestamp;
 
   return (
-    <div className="min-h-screen bg-zinc-50 px-4 py-6 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="min-h-screen px-4 py-6">
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-2xl">
         <header className="space-y-1">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-2xl font-bold tracking-tight">Status do Sistema</h1>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => fetchStatus()}
               disabled={loading}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
             >
               {loading ? "Verificando..." : "Atualizar"}
-            </button>
+            </Button>
           </div>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Monitoramento dos serviços da plataforma Chazz
           </p>
         </header>
@@ -198,7 +201,7 @@ export default function StatusPage() {
         </div>
 
         {!loading && lastFetchedAt ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-[var(--muted-foreground)]">
             Última verificação: {lastFetchedAt.toLocaleTimeString("pt-BR")}
             {isCached ? " · Resposta em cache (atualiza a cada 5 min)" : ""}
           </p>
@@ -207,7 +210,7 @@ export default function StatusPage() {
         <nav>
           <Link
             href="/"
-            className="text-sm text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
+            className="text-sm text-[var(--muted-foreground)] underline-offset-2 hover:underline"
           >
             ← Voltar ao painel
           </Link>

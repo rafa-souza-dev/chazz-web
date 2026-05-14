@@ -56,11 +56,11 @@ export default function HomePage() {
             Escolha uma empresa para ver as máquinas disponíveis.
           </p>
         </div>
-        <Link href="/admin/login" aria-label="Painel admin">
-          <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" asChild aria-label="Painel admin">
+          <Link href="/admin/login">
             <ShieldCheck className="size-5" />
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </header>
 
       <Link
