@@ -42,7 +42,8 @@ type DialogState =
   | { kind: "create" }
   | { kind: "edit"; device: Device }
   | { kind: "delete"; device: Device }
-  | { kind: "turn-off"; device: Device };
+  | { kind: "turn-off"; device: Device }
+  | { kind: "release"; device: Device };
 
 export default function AdminDevicesPage() {
   const { user, isSuperadmin } = useAuth();
@@ -114,11 +115,13 @@ export default function AdminDevicesPage() {
     setDialog({ kind: "closed" });
   }
 
-  async function handleRelease(deviceId: number) {
+  async function handleRelease(deviceId: number, minutes: number) {
     try {
-      const res = await api.post<Device>(`/devices/${deviceId}/release`, {});
+      const res = await api.post<Device>(`/devices/${deviceId}/release`, {
+        seconds: minutes * 60,
+      });
       setDevices((current) => current.map((d) => (d.id === deviceId ? res.data : d)));
-      toast.success("Máquina liberada por 30 minutos");
+      toast.success(`Máquina liberada por ${minutes} minutos`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Falha ao liberar máquina"));
     }
@@ -255,8 +258,8 @@ export default function AdminDevicesPage() {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="default" onClick={() => handleRelease(device.id)} className="gap-2">
-                      <RefreshCcw className="size-3" /> Liberar 30 min
+                    <Button size="sm" variant="default" onClick={() => setDialog({ kind: "release", device })} className="gap-2">
+                      <RefreshCcw className="size-3" /> Liberar
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setDialog({ kind: "turn-off", device })} className="gap-2">
                       <Power className="size-3" /> Desligar
@@ -277,6 +280,17 @@ export default function AdminDevicesPage() {
           device={dialog.device}
           onClose={closeDialog}
           onSave={(name) => handleSaveRename(dialog.device, name)}
+        />
+      ) : null}
+
+      {dialog.kind === "release" ? (
+        <ReleaseDialog
+          device={dialog.device}
+          onClose={closeDialog}
+          onConfirm={async (minutes) => {
+            await handleRelease(dialog.device.id, minutes);
+            closeDialog();
+          }}
         />
       ) : null}
 
@@ -393,6 +407,63 @@ function RenameDialog({
             }}
           >
             {submitting ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReleaseDialog({
+  device,
+  onClose,
+  onConfirm,
+}: {
+  device: Device;
+  onClose: () => void;
+  onConfirm: (minutes: number) => Promise<void>;
+}) {
+  const [minutes, setMinutes] = useState("30");
+  const [submitting, setSubmitting] = useState(false);
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Liberar máquina</DialogTitle>
+          <DialogDescription>
+            Por quantos minutos deseja liberar &quot;{device.name ?? `Máquina ${device.id}`}&quot;? (máximo 120)
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="release-minutes">Minutos</Label>
+          <Input
+            id="release-minutes"
+            type="number"
+            min={1}
+            max={120}
+            value={minutes}
+            onChange={(e) => setMinutes(e.target.value)}
+          />
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button
+            disabled={submitting}
+            onClick={async () => {
+              const minutesNum = Math.round(parseFloat(minutes));
+              if (!Number.isFinite(minutesNum) || minutesNum < 1 || minutesNum > 120) {
+                toast.error("Informe um valor entre 1 e 120 minutos");
+                return;
+              }
+              setSubmitting(true);
+              try {
+                await onConfirm(minutesNum);
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+          >
+            {submitting ? "Liberando..." : "Liberar"}
           </Button>
         </DialogFooter>
       </DialogContent>
