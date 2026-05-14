@@ -62,6 +62,12 @@ async function performRefresh(): Promise<string | null> {
   }
 }
 
+export function getApiErrorMessage(error: unknown, fallback = "Erro ao processar requisição"): string {
+  if (typeof error !== "object" || error === null) return fallback;
+  const e = error as { response?: { data?: { error?: string } }; message?: string };
+  return e.response?.data?.error ?? e.message ?? fallback;
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {

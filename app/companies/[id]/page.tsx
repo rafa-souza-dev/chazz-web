@@ -40,26 +40,30 @@ export default function CompanyDevicesPage({
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!Number.isFinite(companyId)) {
-      setError("ID de empresa inválido");
-      setLoading(false);
-      return;
-    }
     const controller = new AbortController();
-    Promise.all([
-      apiPublic.get<Company>(`/companies/${companyId}`, { signal: controller.signal }),
-      apiPublic.get<Device[]>(`/companies/${companyId}/devices`, { signal: controller.signal }),
-    ])
-      .then(([companyRes, devicesRes]) => {
+    const run = async () => {
+      if (!Number.isFinite(companyId)) {
+        setError("ID de empresa inválido");
+        setLoading(false);
+        return;
+      }
+      try {
+        const [companyRes, devicesRes] = await Promise.all([
+          apiPublic.get<Company>(`/companies/${companyId}`, { signal: controller.signal }),
+          apiPublic.get<Device[]>(`/companies/${companyId}/devices`, { signal: controller.signal }),
+        ]);
         setCompany(companyRes.data);
         setDevices(devicesRes.data);
-      })
-      .catch((err) => {
-        if (err.code !== "ERR_CANCELED") {
-          setError(err.response?.data?.error ?? err.message ?? "Erro ao carregar dados");
+      } catch (err) {
+        const e = err as { code?: string; response?: { data?: { error?: string } }; message?: string };
+        if (e.code !== "ERR_CANCELED") {
+          setError(e.response?.data?.error ?? e.message ?? "Erro ao carregar dados");
         }
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    void run();
     return () => controller.abort();
   }, [companyId]);
 
