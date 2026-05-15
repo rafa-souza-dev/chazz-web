@@ -323,7 +323,7 @@ export default function DeviceDetailPage({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Pagar com Pix</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-zinc-400 dark:text-zinc-300">
               Escaneie o QR code ou copie o código Pix.
               {pixExpiryMs > 0 && (
                 <>
@@ -339,12 +339,12 @@ export default function DeviceDetailPage({
           </DialogHeader>
           {pixCharge && (
             <div className="flex flex-col items-center gap-4">
-              <div className="rounded border p-2">
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-4 shadow-sm">
                 <QRCode value={pixCharge.brCode} size={192} />
               </div>
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500 hover:border-emerald-600"
                 onClick={() => {
                   navigator.clipboard.writeText(pixCharge.brCode);
                   toast.success("Código copiado!");
