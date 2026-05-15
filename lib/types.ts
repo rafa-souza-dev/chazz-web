@@ -1,6 +1,9 @@
 export type Company = {
   id: number;
   name: string;
+  night_rate: number | null;
+  night_start: number | null;
+  night_end: number | null;
 };
 
 export type Device = {

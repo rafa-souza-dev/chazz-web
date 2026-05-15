@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, KeyRound, LayoutDashboard, LogOut, Tag, Users, Boxes } from "lucide-react";
+import { Building2, KeyRound, LayoutDashboard, LogOut, Settings, Tag, Users, Boxes } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   superadminOnly?: boolean;
+  adminOnly?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -22,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/coupons", label: "Cupons", icon: Tag },
   { href: "/admin/companies", label: "Empresas", icon: Building2, superadminOnly: true },
   { href: "/admin/users", label: "Usuários", icon: Users, superadminOnly: true },
+  { href: "/admin/settings", label: "Configurações", icon: Settings, adminOnly: true },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -47,7 +49,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const visibleNav = NAV_ITEMS.filter((item) => !item.superadminOnly || isSuperadmin);
+  const visibleNav = NAV_ITEMS.filter((item) => {
+    if (item.superadminOnly) return isSuperadmin;
+    if (item.adminOnly) return !isSuperadmin;
+    return true;
+  });
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr]">

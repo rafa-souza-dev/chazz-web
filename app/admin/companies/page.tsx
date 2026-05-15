@@ -20,6 +20,13 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 
+type CompanyFormFields = {
+  name: string;
+  nightRate: number | null;
+  nightStart: number | null;
+  nightEnd: number | null;
+};
+
 type DialogState =
   | { kind: "closed" }
   | { kind: "create" }
@@ -48,9 +55,14 @@ export default function AdminCompaniesPage() {
 
   const closeDialog = () => setDialog({ kind: "closed" });
 
-  async function handleCreate(name: string) {
+  async function handleCreate(fields: CompanyFormFields) {
     try {
-      const res = await api.post<Company>("/companies", { name });
+      const res = await api.post<Company>("/companies", {
+        name: fields.name,
+        nightRate: fields.nightRate,
+        nightStart: fields.nightStart,
+        nightEnd: fields.nightEnd,
+      });
       setCompanies((current) => [...current, res.data]);
       toast.success("Empresa criada");
     } catch (err) {
@@ -58,9 +70,14 @@ export default function AdminCompaniesPage() {
     }
   }
 
-  async function handleEdit(company: Company, name: string) {
+  async function handleEdit(company: Company, fields: CompanyFormFields) {
     try {
-      const res = await api.put<Company>(`/companies/${company.id}`, { name });
+      const res = await api.put<Company>(`/companies/${company.id}`, {
+        name: fields.name,
+        nightRate: fields.nightRate,
+        nightStart: fields.nightStart,
+        nightEnd: fields.nightEnd,
+      });
       setCompanies((current) => current.map((c) => (c.id === company.id ? res.data : c)));
       toast.success("Empresa atualizada");
     } catch (err) {
@@ -115,7 +132,12 @@ export default function AdminCompaniesPage() {
             >
               <div>
                 <p className="font-medium">{company.name}</p>
-                <p className="text-xs text-[var(--muted-foreground)]">ID #{company.id}</p>
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  ID #{company.id}
+                  {company.night_rate != null && (
+                    <span className="ml-2">· Tarifa noturna: +{company.night_rate}%</span>
+                  )}
+                </p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setDialog({ kind: "edit", company })} className="gap-2">
@@ -131,23 +153,23 @@ export default function AdminCompaniesPage() {
       )}
 
       {dialog.kind === "create" ? (
-        <NameDialog
+        <CompanyDialog
           title="Nova empresa"
           onClose={closeDialog}
-          onSave={async (name) => {
-            await handleCreate(name);
+          onSave={async (fields) => {
+            await handleCreate(fields);
             closeDialog();
           }}
         />
       ) : null}
 
       {dialog.kind === "edit" ? (
-        <NameDialog
+        <CompanyDialog
           title="Editar empresa"
-          initialName={dialog.company.name}
+          initial={dialog.company}
           onClose={closeDialog}
-          onSave={async (name) => {
-            await handleEdit(dialog.company, name);
+          onSave={async (fields) => {
+            await handleEdit(dialog.company, fields);
             closeDialog();
           }}
         />
@@ -174,28 +196,78 @@ export default function AdminCompaniesPage() {
   );
 }
 
-function NameDialog({
+function CompanyDialog({
   title,
-  initialName = "",
+  initial,
   onClose,
   onSave,
 }: {
   title: string;
-  initialName?: string;
+  initial?: { name: string; night_rate: number | null; night_start: number | null; night_end: number | null };
   onClose: () => void;
-  onSave: (name: string) => Promise<void>;
+  onSave: (fields: CompanyFormFields) => Promise<void>;
 }) {
-  const [name, setName] = useState(initialName);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [nightRateStr, setNightRateStr] = useState(initial?.night_rate != null ? String(initial.night_rate) : "");
+  const [nightStartStr, setNightStartStr] = useState(initial?.night_start != null ? String(initial.night_start) : "");
+  const [nightEndStr, setNightEndStr] = useState(initial?.night_end != null ? String(initial.night_end) : "");
   const [submitting, setSubmitting] = useState(false);
+
+  const nightRate = nightRateStr === "" ? null : Number(nightRateStr);
+  const nightStart = nightStartStr === "" ? null : Number(nightStartStr);
+  const nightEnd = nightEndStr === "" ? null : Number(nightEndStr);
+
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-1">
-          <Label htmlFor="company-name">Nome</Label>
-          <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="company-name">Nome</Label>
+            <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="night-rate">Taxa noturna (%)</Label>
+            <Input
+              id="night-rate"
+              type="number"
+              min={1}
+              max={100}
+              placeholder="Ex: 10 (deixe vazio para desativar)"
+              value={nightRateStr}
+              onChange={(e) => setNightRateStr(e.target.value)}
+            />
+          </div>
+          {nightRate !== null && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="night-start">Início (hora, 0-23)</Label>
+                <Input
+                  id="night-start"
+                  type="number"
+                  min={0}
+                  max={23}
+                  placeholder="18"
+                  value={nightStartStr}
+                  onChange={(e) => setNightStartStr(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="night-end">Fim (hora, 0-23)</Label>
+                <Input
+                  id="night-end"
+                  type="number"
+                  min={0}
+                  max={23}
+                  placeholder="6"
+                  value={nightEndStr}
+                  onChange={(e) => setNightEndStr(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
@@ -204,7 +276,7 @@ function NameDialog({
             onClick={async () => {
               setSubmitting(true);
               try {
-                await onSave(name.trim());
+                await onSave({ name: name.trim(), nightRate, nightStart, nightEnd });
               } finally {
                 setSubmitting(false);
               }
