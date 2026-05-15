@@ -349,6 +349,7 @@ export default function DeviceDetailPage({
                 onClick={() => {
                   navigator.clipboard.writeText(pixCharge.brCode);
                   setPixCopied(true);
+                  toast.success("Código copiado!");
                 }}
               >
                 {pixCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
