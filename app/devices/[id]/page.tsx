@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, use } from "react";
 import Link from "next/link";
 import QRCode from "react-qr-code";
-import { ChevronLeft, Power, Ticket, Zap } from "lucide-react";
+import { ChevronLeft, Check, Copy, Power, Ticket, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { apiPublic, API_BASE_URL, getApiErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export default function DeviceDetailPage({
   const [pixCycleId, setPixCycleId] = useState<number | null>(null);
   const [pixLoadingCycleId, setPixLoadingCycleId] = useState<number | null>(null);
   const [pixExpiryMs, setPixExpiryMs] = useState(0);
+  const [pixCopied, setPixCopied] = useState(false);
   const pixCycleIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -319,7 +320,7 @@ export default function DeviceDetailPage({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={pixOpen} onOpenChange={setPixOpen}>
+      <Dialog open={pixOpen} onOpenChange={(open) => { setPixOpen(open); if (!open) setPixCopied(false); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Pagar com Pix</DialogTitle>
@@ -344,13 +345,14 @@ export default function DeviceDetailPage({
               </div>
               <Button
                 variant="outline"
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500 hover:border-emerald-600"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500 hover:border-emerald-600 gap-2"
                 onClick={() => {
                   navigator.clipboard.writeText(pixCharge.brCode);
-                  toast.success("Código copiado!");
+                  setPixCopied(true);
                 }}
               >
-                Copiar código Pix
+                {pixCopied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                {pixCopied ? "Copiado" : "Copiar código Pix"}
               </Button>
             </div>
           )}
