@@ -66,3 +66,25 @@ export function isDeviceUpdateEvent(value: unknown): value is DeviceUpdateEvent 
   if (obj.type !== "device_rescheduled" && obj.type !== "device_turned_off") return false;
   return typeof obj.device_id === "number";
 }
+
+export type ChargePayload = {
+  brCode: string;
+  expiresAt: string;
+  correlationId: string;
+};
+
+export type ChargePaidEvent = {
+  type: "charge_paid";
+  cycle_id: number;
+  device_id: number;
+};
+
+export function isChargePaidEvent(value: unknown): value is ChargePaidEvent {
+  if (typeof value !== "object" || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    obj.type === "charge_paid" &&
+    typeof obj.cycle_id === "number" &&
+    typeof obj.device_id === "number"
+  );
+}

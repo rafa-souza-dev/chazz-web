@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, use } from "react";
+import { useEffect, useMemo, useRef, useState, use } from "react";
 import Link from "next/link";
+import QRCode from "react-qr-code";
 import { ChevronLeft, Power, Ticket, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { apiPublic, API_BASE_URL } from "@/lib/api";
+import { apiPublic, API_BASE_URL, getApiErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isDeviceUpdateEvent, type Device, type DeviceCycle } from "@/lib/types";
+import {
+  isDeviceUpdateEvent,
+  isChargePaidEvent,
+  type Device,
+  type DeviceCycle,
+  type ChargePayload,
+} from "@/lib/types";
 import { formatCents, formatSecondsHuman } from "@/lib/format";
 import { formatDuration, getRemainingMs, isDeviceOff } from "@/lib/devices";
 
@@ -54,6 +61,13 @@ export default function DeviceDetailPage({
   const [couponCode, setCouponCode] = useState("");
   const [couponSubmitting, setCouponSubmitting] = useState(false);
 
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixCharge, setPixCharge] = useState<ChargePayload | null>(null);
+  const [pixCycleId, setPixCycleId] = useState<number | null>(null);
+  const [pixLoadingCycleId, setPixLoadingCycleId] = useState<number | null>(null);
+  const [pixExpiryMs, setPixExpiryMs] = useState(0);
+  const pixCycleIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (!Number.isFinite(deviceId)) {
       setError("ID de máquina inválido");
@@ -84,21 +98,47 @@ export default function DeviceDetailPage({
   }, []);
 
   useEffect(() => {
+    pixCycleIdRef.current = pixCycleId;
+  }, [pixCycleId]);
+
+  useEffect(() => {
+    if (!pixOpen || !pixCharge) return;
+    const target = new Date(pixCharge.expiresAt).getTime();
+    const tick = () => {
+      const rem = target - Date.now();
+      if (rem <= 0) {
+        setPixOpen(false);
+        return;
+      }
+      setPixExpiryMs(rem);
+    };
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [pixOpen, pixCharge]);
+
+  useEffect(() => {
     const ws = new WebSocket(WS_URL);
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as unknown;
-        if (!isDeviceUpdateEvent(data)) return;
-        if (data.device_id !== deviceId) return;
-        setDevice((current) =>
-          current
-            ? {
-                ...current,
-                turn_off_at:
-                  data.type === "device_rescheduled" ? data.turn_off_at : null,
-              }
-            : current,
-        );
+        if (isDeviceUpdateEvent(data)) {
+          if (data.device_id !== deviceId) return;
+          setDevice((current) =>
+            current
+              ? {
+                  ...current,
+                  turn_off_at:
+                    data.type === "device_rescheduled" ? data.turn_off_at : null,
+                }
+              : current,
+          );
+          return;
+        }
+        if (isChargePaidEvent(data) && data.cycle_id === pixCycleIdRef.current) {
+          setPixOpen(false);
+          toast.success("Pagamento confirmado");
+        }
       } catch {
         // ignore
       }
@@ -109,6 +149,22 @@ export default function DeviceDetailPage({
   const off = device ? isDeviceOff(device.turn_off_at, nowMs) : true;
   const remainingMs = device && device.turn_off_at && !off ? getRemainingMs(device.turn_off_at, nowMs) : 0;
   const sortedCycles = useMemo(() => [...cycles].sort((a, b) => a.cents - b.cents), [cycles]);
+
+  async function handlePayCycle(cycle: DeviceCycle) {
+    setPixLoadingCycleId(cycle.id);
+    try {
+      const res = await apiPublic.post<ChargePayload>(
+        `/devices/${deviceId}/cycles/${cycle.id}/pay`,
+      );
+      setPixCharge(res.data);
+      setPixCycleId(cycle.id);
+      setPixOpen(true);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Erro ao gerar cobrança"));
+    } finally {
+      setPixLoadingCycleId(null);
+    }
+  }
 
   async function handleRedeem() {
     if (!couponCode.trim()) {
@@ -213,13 +269,22 @@ export default function DeviceDetailPage({
                 className="flex items-center justify-between rounded-lg border bg-[var(--card)] p-3"
               >
                 <span className="text-sm">{formatSecondsHuman(cycle.seconds)}</span>
-                <span className="text-sm font-semibold">{formatCents(cycle.cents)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold">{formatCents(cycle.cents)}</span>
+                  <Button
+                    size="sm"
+                    onClick={() => handlePayCycle(cycle)}
+                    disabled={pixLoadingCycleId === cycle.id}
+                  >
+                    {pixLoadingCycleId === cycle.id ? "Aguarde..." : "Realizar pagamento"}
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
         )}
         <p className="text-xs text-[var(--muted-foreground)]">
-          Pague o valor do ciclo desejado por PIX usando o QR code da máquina ou utilize um cupom acima.
+          Clique em <strong>Realizar pagamento</strong> no ciclo desejado para gerar o QR Code Pix ou utilize um cupom acima.
         </p>
       </section>
 
@@ -250,6 +315,49 @@ export default function DeviceDetailPage({
             <Button onClick={handleRedeem} disabled={couponSubmitting}>
               {couponSubmitting ? "Resgatando..." : "Resgatar"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pixOpen} onOpenChange={setPixOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pagar com Pix</DialogTitle>
+            <DialogDescription>
+              Escaneie o QR code ou copie o código Pix.
+              {pixExpiryMs > 0 && (
+                <>
+                  {" "}
+                  Expira em{" "}
+                  <span className="font-semibold tabular-nums">
+                    {formatDuration(pixExpiryMs)}
+                  </span>
+                  .
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {pixCharge && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="rounded border p-2">
+                <QRCode value={pixCharge.brCode} size={192} />
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  navigator.clipboard.writeText(pixCharge.brCode);
+                  toast.success("Código copiado!");
+                }}
+              >
+                Copiar código Pix
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Fechar</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
