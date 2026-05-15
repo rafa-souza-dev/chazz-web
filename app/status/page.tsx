@@ -176,7 +176,7 @@ export default function StatusPage() {
           />
           <ServiceCard
             title="Banco de Dados"
-            description="Conexão com o banco SQLite via Prisma"
+            description="Conexão com o banco PostgreSQL via Prisma"
             serviceStatus={statusData?.database ?? null}
             loading={loading}
           />
