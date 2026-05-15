@@ -209,8 +209,8 @@ function CompanyDialog({
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [nightRateStr, setNightRateStr] = useState(initial?.night_rate != null ? String(initial.night_rate) : "");
-  const [nightStartStr, setNightStartStr] = useState(initial?.night_start != null ? String(initial.night_start) : "");
-  const [nightEndStr, setNightEndStr] = useState(initial?.night_end != null ? String(initial.night_end) : "");
+  const [nightStartStr, setNightStartStr] = useState(initial?.night_start != null ? String(initial.night_start) : "18");
+  const [nightEndStr, setNightEndStr] = useState(initial?.night_end != null ? String(initial.night_end) : "6");
   const [submitting, setSubmitting] = useState(false);
 
   const nightRate = nightRateStr === "" ? null : Number(nightRateStr);

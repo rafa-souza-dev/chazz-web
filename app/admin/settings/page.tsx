@@ -18,8 +18,8 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
 
   const [nightRateStr, setNightRateStr] = useState("");
-  const [nightStartStr, setNightStartStr] = useState("");
-  const [nightEndStr, setNightEndStr] = useState("");
+  const [nightStartStr, setNightStartStr] = useState("18");
+  const [nightEndStr, setNightEndStr] = useState("6");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -33,8 +33,8 @@ export default function AdminSettingsPage() {
       .then((res) => {
         setCompany(res.data);
         setNightRateStr(res.data.night_rate != null ? String(res.data.night_rate) : "");
-        setNightStartStr(res.data.night_start != null ? String(res.data.night_start) : "");
-        setNightEndStr(res.data.night_end != null ? String(res.data.night_end) : "");
+        setNightStartStr(res.data.night_start != null ? String(res.data.night_start) : "18");
+        setNightEndStr(res.data.night_end != null ? String(res.data.night_end) : "6");
       })
       .catch((err) => toast.error(getApiErrorMessage(err, "Erro ao carregar configurações")))
       .finally(() => setLoading(false));
