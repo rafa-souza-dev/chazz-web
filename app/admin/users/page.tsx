@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -269,9 +270,8 @@ function UserFormDialog({
           </div>
           <div className="space-y-1">
             <Label htmlFor="pwd">Senha {mode === "edit" ? "(deixe em branco para manter)" : ""}</Label>
-            <Input
+            <PasswordInput
               id="pwd"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, LayoutDashboard, LogOut, Tag, Users, Boxes } from "lucide-react";
+import { Building2, KeyRound, LayoutDashboard, LogOut, Tag, Users, Boxes } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChangePasswordDialog } from "@/components/admin/change-password-dialog";
 
 type NavItem = {
   href: string;
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, logout, isSuperadmin } = useAuth();
+  const [changePwOpen, setChangePwOpen] = useState(false);
 
   const isLoginRoute = pathname === "/admin/login";
 
@@ -75,10 +77,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="space-y-1 border-t p-3 text-xs text-[var(--muted-foreground)]">
           <p className="line-clamp-1 font-medium text-[var(--foreground)]">{user.email}</p>
           <p>{isSuperadmin ? "Superadmin" : `Admin · company #${user.company_id ?? "—"}`}</p>
-          <Button variant="ghost" size="sm" onClick={logout} className="mt-2 w-full justify-start gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setChangePwOpen(true)} className="mt-2 w-full justify-start gap-2">
+            <KeyRound className="size-4" /> Alterar senha
+          </Button>
+          <Button variant="ghost" size="sm" onClick={logout} className="w-full justify-start gap-2">
             <LogOut className="size-4" /> Sair
           </Button>
         </div>
+        <ChangePasswordDialog open={changePwOpen} onOpenChange={setChangePwOpen} />
       </aside>
 
       <div className="flex flex-col">
