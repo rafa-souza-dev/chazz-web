@@ -51,6 +51,11 @@ export type Transaction = {
   paid_at: string;
 };
 
+export type TransactionPage = {
+  data: Transaction[];
+  pagination: { page: number; pageSize: number; total: number; totalPages: number };
+};
+
 export type AdminUser = {
   id: number;
   email: string;
