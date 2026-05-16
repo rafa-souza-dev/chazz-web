@@ -62,6 +62,27 @@ export default function AdminSettingsPage() {
     }
   }
 
+  async function handleRemoveRate() {
+    if (!company) return;
+    setSubmitting(true);
+    try {
+      const res = await api.put<Company>(`/companies/${company.id}/night-settings`, {
+        nightRate: null,
+        nightStart: null,
+        nightEnd: null,
+      });
+      setCompany(res.data);
+      setNightRateStr("");
+      setNightStartStr("18");
+      setNightEndStr("6");
+      toast.success("Taxa noturna removida");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Falha ao remover taxa"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading || !company) {
     return (
       <div className="text-sm text-[var(--muted-foreground)]">Carregando...</div>
@@ -128,9 +149,16 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          <Button onClick={handleSave} disabled={submitting}>
-            {submitting ? "Salvando..." : "Salvar"}
-          </Button>
+          <div className="flex gap-2">
+            {company.night_rate !== null && (
+              <Button variant="outline" onClick={handleRemoveRate} disabled={submitting}>
+                Remover taxa
+              </Button>
+            )}
+            <Button onClick={handleSave} disabled={submitting}>
+              {submitting ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

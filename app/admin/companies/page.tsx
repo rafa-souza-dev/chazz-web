@@ -270,6 +270,22 @@ function CompanyDialog({
           )}
         </div>
         <DialogFooter className="gap-2">
+          {initial?.night_rate != null && (
+            <Button
+              variant="outline"
+              disabled={submitting || !name.trim()}
+              onClick={async () => {
+                setSubmitting(true);
+                try {
+                  await onSave({ name: name.trim(), nightRate: null, nightStart: null, nightEnd: null });
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+            >
+              Remover taxa
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button
             disabled={submitting || !name.trim()}
