@@ -40,6 +40,17 @@ export type Role = {
   slug: string;
 };
 
+export type Transaction = {
+  id: number;
+  correlation_id: string;
+  company_id: number | null;
+  company_name: string | null;
+  device_id: number;
+  cycle_id: number;
+  value_cents: number;
+  paid_at: string;
+};
+
 export type AdminUser = {
   id: number;
   email: string;

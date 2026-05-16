@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, KeyRound, LayoutDashboard, LogOut, Settings, Tag, Users, Boxes } from "lucide-react";
+import { ArrowLeftRight, Building2, KeyRound, LayoutDashboard, LogOut, Settings, Tag, Users, Boxes } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Visão geral", icon: LayoutDashboard },
   { href: "/admin/devices", label: "Máquinas", icon: Boxes },
   { href: "/admin/coupons", label: "Cupons", icon: Tag },
+  { href: "/admin/transactions", label: "Transações", icon: ArrowLeftRight },
   { href: "/admin/companies", label: "Empresas", icon: Building2, superadminOnly: true },
   { href: "/admin/users", label: "Usuários", icon: Users, superadminOnly: true },
   { href: "/admin/settings", label: "Configurações", icon: Settings, adminOnly: true },
